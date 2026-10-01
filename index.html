@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Контроль исполнения бюджета</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #f8f9fb;
+  --border: #e2e5ea;
+  --border-strong: #c9ced6;
+  --text: #1b1f27;
+  --muted: #5f6775;
+  --accent: #1f5fbf;
+  --accent-soft: #e8f0fc;
+  --over: #c62828;
+  --over-soft: #fdecec;
+  --over-row: #fff3f3;
+  --under: #a15c00;
+  --under-soft: #fff4e0;
+  --ok: #1e7d43;
+  --ok-soft: #e6f4ea;
+  --bar-track: #e7eaef;
+  --bar-fill: #3b7be0;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .06);
+  --radius: 12px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318;
+    --surface: #1a1d24;
+    --surface-2: #20242c;
+    --border: #2d323c;
+    --border-strong: #3d4350;
+    --text: #e8eaee;
+    --muted: #9aa2b0;
+    --accent: #79a8f2;
+    --accent-soft: #1d2a40;
+    --over: #ff7b7b;
+    --over-soft: #3a1f22;
+    --over-row: #2a1b1e;
+    --under: #f0b155;
+    --under-soft: #352a17;
+    --ok: #5fcf8a;
+    --ok-soft: #17301f;
+    --bar-track: #2c313b;
+    --bar-fill: #5b93ec;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318;
+  --surface: #1a1d24;
+  --surface-2: #20242c;
+  --border: #2d323c;
+  --border-strong: #3d4350;
+  --text: #e8eaee;
+  --muted: #9aa2b0;
+  --accent: #79a8f2;
+  --accent-soft: #1d2a40;
+  --over: #ff7b7b;
+  --over-soft: #3a1f22;
+  --over-row: #2a1b1e;
+  --under: #f0b155;
+  --under-soft: #352a17;
+  --ok: #5fcf8a;
+  --ok-soft: #17301f;
+  --bar-track: #2c313b;
+  --bar-fill: #5b93ec;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "Onest", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 16px 64px; }
+h1, h2, h3 { margin: 0; line-height: 1.25; }
+h2 { font-size: 19px; font-weight: 600; }
+h3 { font-size: 15px; font-weight: 600; }
+a { color: var(--accent); }
+button, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.muted { color: var(--muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* Header */
+header.top {
+  position: sticky; top: 0; z-index: 5;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.top-inner {
+  max-width: 1240px; margin: 0 auto; padding: 12px 16px;
+  display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-icon {
+  width: 34px; height: 34px; border-radius: 9px; background: var(--accent); color: #fff;
+  display: grid; place-items: center; flex: none;
+}
+.brand h1 { font-size: 18px; font-weight: 700; }
+.brand p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.field-inline { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--muted); }
+.field-inline input {
+  width: 96px; padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 8px;
+  background: var(--surface); text-align: right; font-variant-numeric: tabular-nums;
+}
+.field-inline .unit { color: var(--muted); }
+.icon-btn {
+  border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px;
+  width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
+}
+
+/* Cards */
+section.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px;
+}
+.card-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-head p { margin: 4px 0 0; color: var(--muted); font-size: 13.5px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: var(--surface); cursor: pointer; font-weight: 500; font-size: 14px;
+}
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { filter: brightness(1.07); background: var(--accent); }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Upload */
+.uploads { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.drop {
+  position: relative; border: 1.5px dashed var(--border-strong); border-radius: 10px; padding: 14px;
+  background: var(--surface-2); min-height: 132px; display: flex; flex-direction: column; gap: 6px;
+  transition: border-color .15s, background .15s;
+}
+.drop.drag { border-color: var(--accent); background: var(--accent-soft); }
+.drop.loaded { border-style: solid; border-color: var(--ok); background: var(--ok-soft); }
+.drop.error { border-style: solid; border-color: var(--over); background: var(--over-soft); }
+.drop-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 14px; }
+.cur-chip { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); letter-spacing: .02em; }
+.drop input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.drop label.pick { color: var(--accent); text-decoration: underline; cursor: pointer; font-weight: 500; }
+.drop .hint { font-size: 12.5px; color: var(--muted); }
+.drop .file { font-size: 13px; word-break: break-all; }
+.drop .file b { font-weight: 600; }
+.drop .err { font-size: 12.5px; color: var(--over); }
+.drop .remove {
+  margin-top: auto; align-self: flex-start; background: none; border: none; padding: 2px 0; color: var(--muted);
+  font-size: 12.5px; cursor: pointer; text-decoration: underline;
+}
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.kpi { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--surface-2); }
+.kpi .label { font-size: 12.5px; color: var(--muted); }
+.kpi .value { font-size: 21px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.kpi .sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.kpi.bad .value { color: var(--over); }
+.kpi.good .value { color: var(--ok); }
+.kpi .bar-wrap { margin-top: 8px; }
+
+/* Over block */
+section.over-block { border-color: color-mix(in srgb, var(--over) 45%, var(--border)); background: var(--over-soft); }
+.over-block .card-head h2 { color: var(--over); display: flex; align-items: center; gap: 8px; }
+.over-block .table-wrap { background: var(--surface); }
+.none-msg { padding: 18px; text-align: center; color: var(--ok); font-weight: 600; background: var(--surface); border-radius: 10px; border: 1px solid var(--border); }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+th, td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { text-align: left; font-weight: 600; font-size: 12.5px; color: var(--muted); background: var(--surface-2); white-space: nowrap; }
+th.num { text-align: right; }
+tbody tr:last-child td { border-bottom: none; }
+tr.is-over td { background: var(--over-row); }
+tr.is-over td:first-child { box-shadow: inset 4px 0 0 var(--over); }
+tr.is-over .name { font-weight: 700; }
+tfoot td { font-weight: 700; background: var(--surface-2); border-top: 1px solid var(--border-strong); border-bottom: none; }
+.name { min-width: 180px; }
+.dev-pos { color: var(--over); }
+.dev-neg { color: var(--ok); }
+.tag { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; margin-left: 6px; white-space: nowrap; vertical-align: 1px; }
+.tag-over { background: var(--over); color: #fff; }
+.tag-under { background: var(--under-soft); color: var(--under); }
+.tag-out { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border-strong); margin-left: 0; }
+.tag-noplan { background: var(--surface-2); color: var(--over); border: 1px solid color-mix(in srgb, var(--over) 40%, transparent); }
+.cur-cell { font-size: 12px; font-weight: 600; color: var(--muted); }
+.j-cell { max-width: 260px; font-size: 13px; }
+.j-cell a { text-decoration: none; }
+.j-cell a:hover { text-decoration: underline; }
+.j-cell .snippet { color: var(--text); }
+.j-cell .snippet::before { content: "✓ "; color: var(--ok); font-weight: 700; }
+
+/* Execution bar */
+.exec { display: flex; align-items: center; gap: 8px; min-width: 170px; }
+.bar { position: relative; flex: 1; height: 8px; border-radius: 4px; background: var(--bar-track); overflow: hidden; min-width: 90px; }
+.bar-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--bar-fill); }
+.bar-over { position: absolute; top: 0; bottom: 0; background: var(--over); }
+.bar-mark { position: absolute; left: 66.6667%; top: -3px; bottom: -3px; width: 2px; background: var(--text); opacity: .55; }
+.bar.under .bar-fill { background: var(--under); }
+.pct { font-variant-numeric: tabular-nums; font-size: 13px; width: 58px; text-align: right; flex: none; }
+.pct.over { color: var(--over); font-weight: 700; }
+.pct.under { color: var(--under); font-weight: 600; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; overflow-x: auto; }
+.tab {
+  background: none; border: none; padding: 10px 14px; cursor: pointer; font-weight: 500; color: var(--muted);
+  border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px;
+}
+.tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.tab .count { font-size: 11.5px; background: var(--over); color: #fff; border-radius: 999px; padding: 0 7px; font-weight: 600; }
+.tab .count.zero { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+.filter { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; user-select: none; }
+.filter input { width: 16px; height: 16px; accent-color: var(--over); }
+
+/* Justifications */
+.j-progress { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.j-progress .meter { width: 140px; height: 8px; border-radius: 4px; background: var(--bar-track); overflow: hidden; }
+.j-progress .meter span { display: block; height: 100%; background: var(--ok); }
+.j-group { margin-top: 18px; }
+.j-group h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.j-group h3 .dot { width: 10px; height: 10px; border-radius: 50%; }
+.j-list { display: grid; gap: 10px; }
+.j-item {
+  border: 1px solid var(--border); border-radius: 10px; padding: 14px 14px 10px; background: var(--surface-2);
+  box-shadow: inset 4px 0 0 var(--border-strong);
+}
+.j-item.kind-o { box-shadow: inset 4px 0 0 var(--over); }
+.j-item.kind-u { box-shadow: inset 4px 0 0 var(--under); }
+.j-item.filled { box-shadow: inset 4px 0 0 var(--ok); }
+.j-item:target, .j-item.flash { outline: 2px solid var(--accent); outline-offset: 2px; }
+.j-top { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.j-name { font-weight: 600; }
+.j-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.j-meta b { color: var(--text); font-weight: 600; }
+.j-item textarea {
+  width: 100%; min-height: 64px; resize: vertical; padding: 9px 11px; border-radius: 8px;
+  border: 1px solid var(--border-strong); background: var(--surface); line-height: 1.45;
+}
+.j-status { font-size: 12px; color: var(--muted); margin-top: 4px; min-height: 18px; }
+.j-status.err { color: var(--over); }
+.j-status.ok { color: var(--ok); }
+
+.empty { padding: 28px 16px; text-align: center; color: var(--muted); border: 1px dashed var(--border-strong); border-radius: 10px; }
+
+/* Help */
+details.help summary { cursor: pointer; font-weight: 600; font-size: 17px; }
+.help-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; margin-top: 14px; font-size: 14px; }
+.help-grid ul { margin: 6px 0 0; padding-left: 18px; }
+.help-grid li { margin-bottom: 4px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; background: var(--surface-2); border: 1px solid var(--border); padding: 0 4px; border-radius: 4px; }
+
+@media (max-width: 1000px) {
+  .uploads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpis .kpi:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  .uploads, .kpis, .help-grid { grid-template-columns: 1fr; }
+  section.card { padding: 16px; }
+  .kpi .value { font-size: 19px; }
+  .controls { width: 100%; justify-content: space-between; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; scroll-behavior: auto !important; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      </div>
+      <div>
+        <h1>Контроль исполнения бюджета</h1>
+        <p>План и факт в KZT и USD · отклонения · обоснования</p>
+      </div>
+    </div>
+    <div class="controls">
+      <label class="field-inline">Курс USD/KZT
+        <input id="rate" type="number" inputmode="decimal" min="0" step="0.01" value="500">
+        <span class="unit">₸</span>
+      </label>
+      <label class="field-inline">Порог неисполнения
+        <input id="threshold" type="number" inputmode="decimal" min="0" max="100" step="0.5" value="5" style="width:70px">
+        <span class="unit">%</span>
+      </label>
+      <button class="icon-btn" id="themeBtn" type="button" aria-label="Переключить тему" title="Переключить тему">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- 1. Upload -->
+  <section class="card" aria-labelledby="h-upload">
+    <div class="card-head">
+      <div>
+        <h2 id="h-upload">Загрузка данных</h2>
+        <p>Файлы .xlsx, .xls или .csv: первая строка — заголовки, столбцы «Статья» и «Сумма».</p>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="demoBtn" type="button">Показать на примере</button>
+        <button class="btn" id="clearBtn" type="button">Очистить всё</button>
+      </div>
+    </div>
+    <div class="uploads" id="uploads"></div>
+  </section>
+
+  <!-- 2. Totals -->
+  <section class="card" aria-labelledby="h-totals">
+    <div class="card-head">
+      <div>
+        <h2 id="h-totals">Итоги в тенговом эквиваленте</h2>
+        <p id="totalsNote">KZT + USD × курс</p>
+      </div>
+    </div>
+    <div id="kpis"></div>
+  </section>
+
+  <!-- 3. Over block -->
+  <section class="card over-block" aria-labelledby="h-over" id="overSection">
+    <div class="card-head">
+      <div>
+        <h2 id="h-over">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+          Превышение бюджета
+        </h2>
+        <p>Статьи, где факт больше плана, по обеим валютам. Сортировка по превышению в тенге.</p>
+      </div>
+    </div>
+    <div id="overBody"></div>
+  </section>
+
+  <!-- 4. Justifications -->
+  <section class="card" aria-labelledby="h-just" id="justSection">
+    <div class="card-head">
+      <div>
+        <h2 id="h-just">Обоснование отклонений</h2>
+        <p id="justNote">Требуется для превышений и для неисполнения ниже 95% плана. Сохраняется автоматически.</p>
+      </div>
+      <div class="j-progress" id="justProgress"></div>
+    </div>
+    <div id="justBody"></div>
+  </section>
+
+  <!-- 5. Detail -->
+  <section class="card" aria-labelledby="h-detail">
+    <div class="card-head">
+      <h2 id="h-detail">Детализация</h2>
+      <label class="filter"><input type="checkbox" id="onlyOver"> Показывать только статьи с превышением бюджета</label>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="detailBody" role="tabpanel"></div>
+  </section>
+
+  <!-- 6. Help -->
+  <section class="card">
+    <details class="help">
+      <summary>Справка: формат файлов и правила расчёта</summary>
+      <div class="help-grid">
+        <div>
+          <h3>Формат файлов</h3>
+          <ul>
+            <li>Форматы: <code>.xlsx</code>, <code>.xls</code>, <code>.csv</code>. Файл можно выбрать или перетащить в поле.</li>
+            <li>Первая строка — заголовки. Статья: «Статья», «Наименование» или «Название». Сумма: «Сумма», «План», «Факт» или «Итог».</li>
+            <li>Если заголовки не распознаны, берутся первый текстовый и первый числовой столбцы.</li>
+            <li>Строки «Итого», «Всего», «Total» пропускаются. Одинаковые статьи суммируются.</li>
+            <li>Числа вида <code>1 250 000,50</code> (пробелы, неразрывные пробелы, запятая) распознаются.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Правила расчёта</h3>
+          <ul>
+            <li>План и факт сопоставляются по названию статьи без учёта регистра и лишних пробелов, отдельно в каждой валюте.</li>
+            <li><b>Отклонение</b> = факт − план. Плюс — превышение бюджета.</li>
+            <li><b>Исполнение</b> = факт / план × 100%. Шкала 0–150%, отметка 100%, часть сверх 100% — красная.</li>
+            <li>Статья есть в факте, но нет в плане — план 0, отметка «нет в плане», статус «вне плана».</li>
+            <li><b>Тенговый эквивалент</b> = KZT + USD × курс.</li>
+            <li>Загруженные данные, курс и настройки хранятся в этом браузере. Обоснования в этой локальной версии тоже хранятся в браузере и привязаны к статье и валюте.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Config ----------
+  const SLOTS = [
+    { id: 'kzt_plan', cur: 'KZT', kind: 'plan', label: 'План' },
+    { id: 'kzt_fact', cur: 'KZT', kind: 'fact', label: 'Факт' },
+    { id: 'usd_plan', cur: 'USD', kind: 'plan', label: 'План' },
+    { id: 'usd_fact', cur: 'USD', kind: 'fact', label: 'Факт' },
+  ];
+  const TABS = [
+    { id: 'kzt', label: 'Тенге' },
+    { id: 'usd', label: 'Доллары' },
+    { id: 'all', label: 'Сводно в тенге' },
+  ];
+  const STATE_KEY = 'budget-control:state:v1';
+  const JUST_KEY = 'budget-control:justifications:v1';
+
+  // ---------- Storage ----------
+  const store = {
+    get(key, fallback) {
+      try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
+      catch { return fallback; }
+    },
+    set(key, value) {
+      localStorage.setItem(key, JSON.stringify(value)); // may throw; callers handle
+    },
+  };
+
+  const defaults = { files: {}, rate: 500, threshold: 5, tab: 'kzt', onlyOver: false, theme: null };
+  const state = Object.assign({}, defaults, store.get(STATE_KEY, {}));
+  let justifications = store.get(JUST_KEY, {});
+  const slotErrors = {};
+
+  function saveState() {
+    try { store.set(STATE_KEY, state); } catch { /* per-browser convenience only */ }
+  }
+
+  // ---------- Formatting ----------
+  const fmtKZT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+  const fmtUSD = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtP = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
+  const money = (v, cur) => (cur === 'USD' ? fmtUSD.format(v) + ' $' : fmtKZT.format(v) + ' ₸');
+  const signed = (v, cur) => (v > 0 ? '+' : v < 0 ? '−' : '') + money(Math.abs(v), cur);
+  const pctText = (p) => (p == null ? '—' : fmtP.format(p) + '%');
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const norm = (s) => String(s).toLowerCase().replace(/ё/g, 'е').replace(/[\s  ]+/g, ' ').trim();
+
+  function hash(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return (h >>> 0).toString(36);
+  }
+  const justId = (cur, name) => cur + '_' + hash(norm(name));
+
+  // ---------- Parsing ----------
+  function parseNum(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : NaN;
+    if (v == null) return NaN;
+    let s = String(v).trim();
+    if (!s) return NaN;
+    let neg = false;
+    if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+    s = s.replace(/[\s  ']/g, '').replace(/[^\d,.\-]/g, '');
+    if (!/\d/.test(s)) return NaN;
+    if (s.includes(',') && s.includes('.')) {
+      if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+      else s = s.replace(/,/g, '');
+    } else if (s.includes(',')) {
+      s = s.replace(',', '.');
+    }
+    const n = Number(s);
+    return isNaN(n) ? NaN : (neg ? -n : n);
+  }
+
+  function parseCSV(text) {
+    text = text.replace(/^﻿/, '');
+    const firstLine = text.split(/\r?\n/).find((l) => l.trim()) || '';
+    const counts = { ';': 0, ',': 0, '\t': 0 };
+    let inQ = false;
+    for (const ch of firstLine) { if (ch === '"') inQ = !inQ; else if (!inQ && ch in counts) counts[ch]++; }
+    const delim = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    const rows = []; let row = []; let cell = ''; inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (inQ) {
+        if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+        else cell += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === delim) { row.push(cell); cell = ''; }
+      else if (ch === '\n' || ch === '\r') {
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        row.push(cell); rows.push(row); row = []; cell = '';
+      } else cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  async function readRows(file) {
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+      throw new Error('Формат «.' + ext + '» не поддерживается. Нужен .xlsx, .xls или .csv.');
+    }
+    const buf = await file.arrayBuffer();
+    if (ext === 'csv') {
+      let text = new TextDecoder('utf-8').decode(buf);
+      if (text.includes('�')) text = new TextDecoder('windows-1251').decode(buf);
+      return parseCSV(text);
+    }
+    if (typeof XLSX === 'undefined') throw new Error('Не загрузилась библиотека чтения Excel. Проверьте интернет или сохраните файл как .csv.');
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    if (!ws) throw new Error('В файле нет листов.');
+    return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+  }
+
+  const NAME_RE = /стать|наименован|назван/i;
+  const AMOUNT_RE = /сумм|план|факт|итог/i;
+  const TOTAL_RE = /^\s*(итого|всего|total)\b/i;
+
+  function extractItems(rawRows) {
+    const rows = rawRows.filter((r) => Array.isArray(r) && r.some((c) => String(c).trim() !== ''));
+    if (rows.length < 2) throw new Error('В файле нет строк с данными.');
+    const header = rows[0].map((h) => String(h).trim());
+    const data = rows.slice(1);
+    const width = Math.max(...rows.map((r) => r.length));
+
+    let nameIdx = header.findIndex((h) => NAME_RE.test(h));
+    let amtIdx = header.findIndex((h, i) => i !== nameIdx && AMOUNT_RE.test(h));
+
+    if (nameIdx < 0 || amtIdx < 0) {
+      const stats = [];
+      for (let c = 0; c < width; c++) {
+        let num = 0, txt = 0;
+        for (const r of data) {
+          const v = r[c];
+          if (v === '' || v == null) continue;
+          if (!isNaN(parseNum(v)) && !/[a-zа-я]{2,}/i.test(String(v))) num++; else txt++;
+        }
+        stats.push({ num, txt });
+      }
+      if (nameIdx < 0) nameIdx = stats.findIndex((s, i) => i !== amtIdx && s.txt > 0 && s.txt >= s.num);
+      if (amtIdx < 0) amtIdx = stats.findIndex((s, i) => i !== nameIdx && s.num > 0 && s.num > s.txt);
+    }
+    if (nameIdx < 0 || amtIdx < 0) throw new Error('Не найдены столбцы со статьёй и суммой.');
+
+    const map = new Map();
+    for (const r of data) {
+      const name = String(r[nameIdx] ?? '').replace(/[\s ]+/g, ' ').trim();
+      if (!name || TOTAL_RE.test(name)) continue;
+      const amount = parseNum(r[amtIdx]);
+      if (isNaN(amount)) continue;
+      const key = norm(name);
+      if (map.has(key)) map.get(key).amount += amount;
+      else map.set(key, { name, amount });
+    }
+    if (!map.size) throw new Error('Не удалось прочитать ни одной суммы.');
+    return [...map.values()];
+  }
+
+  // ---------- Demo ----------
+  const DEMO = {
+    kzt_plan: [
+      ['Фонд оплаты труда', 48500000], ['Аренда офиса', 9600000], ['Коммунальные услуги', 2400000],
+      ['Командировочные расходы', 3200000], ['Услуги связи', 1150000], ['Канцелярские товары', 420000],
+      ['Обучение персонала', 2800000], ['Ремонт и обслуживание', 3500000], ['Представительские расходы', 900000],
+      ['Транспортные расходы', 1850000], ['Охрана', 1600000],
+    ],
+    kzt_fact: [
+      ['Фонд оплаты труда', 49120000], ['Аренда офиса', 9600000], ['Коммунальные услуги', 2655000],
+      ['Командировочные расходы', 4180000], ['Услуги связи', 1092000], ['Канцелярские товары', 515000],
+      ['Обучение персонала', 1640000], ['Ремонт и обслуживание', 2950000], ['Представительские расходы', 880000],
+      ['Транспортные расходы', 2310000], ['Охрана', 1600000], ['Штрафы и пени', 185000],
+    ],
+    usd_plan: [
+      ['Лицензии ПО', 42000], ['Облачные сервисы', 18500], ['Консалтинговые услуги', 25000],
+      ['Подписки на базы данных', 6400], ['Зарубежные командировки', 12000], ['Оборудование', 30000],
+    ],
+    usd_fact: [
+      ['Лицензии ПО', 41250], ['Облачные сервисы', 23870.4], ['Консалтинговые услуги', 19800],
+      ['Подписки на базы данных', 6400], ['Зарубежные командировки', 14650.75], ['Оборудование', 31120],
+    ],
+  };
+
+  // ---------- Compute ----------
+  function buildRows(cur) {
+    const plan = state.files[cur.toLowerCase() + '_plan']?.items || [];
+    const fact = state.files[cur.toLowerCase() + '_fact']?.items || [];
+    const k = cur === 'USD' ? state.rate : 1;
+    const map = new Map();
+    for (const it of plan) map.set(norm(it.name), { name: it.name, plan: it.amount, fact: 0, inPlan: true });
+    for (const it of fact) {
+      const key = norm(it.name);
+      if (map.has(key)) map.get(key).fact += it.amount;
+      else map.set(key, { name: it.name, plan: 0, fact: it.amount, inPlan: false });
+    }
+    const thr = 100 - state.threshold;
+    return [...map.values()].map((r) => {
+      const dev = r.fact - r.plan;
+      const pct = r.plan ? (r.fact / r.plan) * 100 : null;
+      const over = dev > 0;
+      const under = !over && r.plan > 0 && pct < thr;
+      return {
+        ...r, cur, dev, pct, over, under,
+        planK: r.plan * k, factK: r.fact * k, devK: dev * k,
+        id: justId(cur, r.name),
+      };
+    });
+  }
+
+  function hasData() { return SLOTS.some((s) => state.files[s.id]); }
+
+  // ---------- Render helpers ----------
+  function execBar(pct, dev) {
+    if (pct == null) return '<span class="tag tag-out">вне плана</span>';
+    const p = Math.max(0, Math.min(pct, 150));
+    const base = (Math.min(p, 100) / 150) * 100;
+    const over = (Math.max(0, p - 100) / 150) * 100;
+    const cls = dev > 0 ? 'over' : pct < 100 - state.threshold ? 'under' : '';
+    return `<div class="exec"><div class="bar ${cls}" role="img" aria-label="Исполнение ${pctText(pct)}">` +
+      `<span class="bar-fill" style="width:${base}%"></span>` +
+      `<span class="bar-over" style="left:66.6667%;width:${over}%"></span><span class="bar-mark"></span></div>` +
+      `<span class="pct ${cls}">${pctText(pct)}</span></div>`;
+  }
+
+  function justCell(r) {
+    if (!r.over && !r.under) return '<span class="muted">—</span>';
+    const text = justifications[r.id]?.text?.trim();
+    if (text) {
+      const s = text.length > 80 ? text.slice(0, 80).trimEnd() + '…' : text;
+      return `<a href="#j-${r.id}" data-jump="${r.id}" class="snippet" title="${esc(text)}">${esc(s)}</a>`;
+    }
+    return `<a href="#j-${r.id}" data-jump="${r.id}">Добавить обоснование</a>`;
+  }
+
+  function nameCell(r) {
+    let tags = '';
+    if (!r.inPlan) tags += '<span class="tag tag-noplan">нет в плане</span>';
+    if (r.over) tags += '<span class="tag tag-over">превышение</span>';
+    else if (r.under) tags += '<span class="tag tag-under">неисполнение</span>';
+    return `<td class="name">${esc(r.name)}${tags}</td>`;
+  }
+
+  const devCell = (v, cur) => `<td class="num ${v > 0 ? 'dev-pos' : v < 0 ? 'dev-neg' : ''}">${signed(v, cur)}</td>`;
+
+  // ---------- Render: uploads ----------
+  function renderUploads() {
+    const el = document.getElementById('uploads');
+    el.innerHTML = SLOTS.map((s) => {
+      const f = state.files[s.id];
+      const err = slotErrors[s.id];
+      const cls = err ? 'error' : f ? 'loaded' : '';
+      let body;
+      if (err) {
+        body = `<div class="err"><b>Не удалось прочитать файл.</b> ${esc(err)} Проверьте, что в файле есть столбцы «Статья» и «Сумма».</div>
+          <div class="hint"><label class="pick" for="f-${s.id}">Выбрать другой файл</label></div>`;
+      } else if (f) {
+        body = `<div class="file"><b>${esc(f.fileName)}</b></div>
+          <div class="hint">${f.items.length} ${plural(f.items.length, 'статья', 'статьи', 'статей')} · ${money(f.items.reduce((a, b) => a + b.amount, 0), s.cur)}</div>
+          <button type="button" class="remove" data-remove="${s.id}">Удалить загрузку</button>`;
+      } else {
+        body = `<div class="hint">Перетащите файл сюда или <label class="pick" for="f-${s.id}">выберите</label></div>
+          <div class="hint">.xlsx · .xls · .csv</div>`;
+      }
+      return `<div class="drop ${cls}" data-slot="${s.id}">
+        <div class="drop-title"><span>${s.label}</span><span class="cur-chip">${s.cur}</span></div>
+        <input type="file" id="f-${s.id}" accept=".xlsx,.xls,.csv" aria-label="${s.label}, ${s.cur}">
+        ${body}
+      </div>`;
+    }).join('');
+  }
+
+  function plural(n, one, few, many) {
+    const m10 = n % 10, m100 = n % 100;
+    if (m10 === 1 && m100 !== 11) return one;
+    if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+    return many;
+  }
+
+  async function handleFile(slotId, file) {
+    if (!file) return;
+    try {
+      const rows = await readRows(file);
+      const items = extractItems(rows);
+      state.files[slotId] = { fileName: file.name, items };
+      delete slotErrors[slotId];
+    } catch (e) {
+      slotErrors[slotId] = e.message || String(e);
+    }
+    saveState();
+    renderAll();
+  }
+
+  // ---------- Render: KPIs ----------
+  function renderKpis(all) {
+    const el = document.getElementById('kpis');
+    document.getElementById('totalsNote').textContent =
+      `KZT + USD × ${fmtUSD.format(state.rate)} ₸`;
+    if (!all.length) {
+      el.innerHTML = '<div class="empty">Загрузите файлы плана и факта или нажмите «Показать на примере».</div>';
+      return;
+    }
+    const plan = all.reduce((a, r) => a + r.planK, 0);
+    const fact = all.reduce((a, r) => a + r.factK, 0);
+    const dev = fact - plan;
+    const pct = plan ? (fact / plan) * 100 : null;
+    const overCnt = all.filter((r) => r.over).length;
+    el.innerHTML = `<div class="kpis">
+      <div class="kpi"><div class="label">Исполнение</div><div class="value">${pctText(pct)}</div>
+        <div class="bar-wrap">${execBar(pct, dev)}</div></div>
+      <div class="kpi"><div class="label">План</div><div class="value">${money(plan, 'KZT')}</div></div>
+      <div class="kpi"><div class="label">Факт</div><div class="value">${money(fact, 'KZT')}</div></div>
+      <div class="kpi ${dev > 0 ? 'bad' : 'good'}"><div class="label">Отклонение</div><div class="value">${signed(dev, 'KZT')}</div>
+        <div class="sub">${dev > 0 ? 'перерасход' : 'экономия'}</div></div>
+      <div class="kpi ${overCnt ? 'bad' : 'good'}"><div class="label">Статьи с превышением</div><div class="value">${overCnt} из ${all.length}</div>
+        <div class="sub">${overCnt ? 'нужны обоснования' : 'всё в рамках плана'}</div></div>
+    </div>`;
+  }
+
+  // ---------- Render: over block ----------
+  function renderOver(all) {
+    const el = document.getElementById('overBody');
+    if (!all.length) { el.innerHTML = '<div class="empty" style="background:var(--surface)">Нет данных.</div>'; return; }
+    const rows = all.filter((r) => r.over).sort((a, b) => b.devK - a.devK);
+    if (!rows.length) { el.innerHTML = '<div class="none-msg">Превышений нет</div>'; return; }
+    el.innerHTML = `<div class="table-wrap"><table>
+      <thead><tr><th>Статья</th><th>Валюта</th><th class="num">План</th><th class="num">Факт</th>
+        <th class="num">Превышение</th><th class="num">Превышение, ₸</th><th>Исполнение</th><th>Обоснование</th></tr></thead>
+      <tbody>${rows.map((r) => `<tr class="is-over">${nameCell(r)}<td class="cur-cell">${r.cur}</td>
+        <td class="num">${money(r.plan, r.cur)}</td><td class="num">${money(r.fact, r.cur)}</td>
+        ${devCell(r.dev, r.cur)}${devCell(r.devK, 'KZT')}<td>${execBar(r.pct, r.dev)}</td>
+        <td class="j-cell">${justCell(r)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td colspan="5">Итого превышение</td>${devCell(rows.reduce((a, r) => a + r.devK, 0), 'KZT')}<td colspan="2"></td></tr></tfoot>
+    </table></div>`;
+  }
+
+  // ---------- Render: justifications ----------
+  function justRequired(all) { return all.filter((r) => r.over || r.under); }
+
+  function renderJustProgress(all) {
+    const req = justRequired(all);
+    const done = req.filter((r) => justifications[r.id]?.text?.trim()).length;
+    const el = document.getElementById('justProgress');
+    if (!req.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="meter" aria-hidden="true"><span style="width:${(done / req.length) * 100}%"></span></div>
+      <span>Заполнено <b>${done}</b> из <b>${req.length}</b></span>`;
+  }
+
+  function renderJust(all) {
+    document.getElementById('justNote').textContent =
+      `Требуется для превышений и для неисполнения ниже ${fmtP.format(100 - state.threshold)}% плана. Сохраняется автоматически.`;
+    renderJustProgress(all);
+    const el = document.getElementById('justBody');
+    if (!all.length) { el.innerHTML = '<div class="empty">Нет данных.</div>'; return; }
+    const overs = all.filter((r) => r.over).sort((a, b) => Math.abs(b.devK) - Math.abs(a.devK));
+    const unders = all.filter((r) => r.under).sort((a, b) => Math.abs(b.devK) - Math.abs(a.devK));
+    if (!overs.length && !unders.length) { el.innerHTML = '<div class="none-msg">Существенных отклонений нет — обоснования не требуются.</div>'; return; }
+
+    const item = (r, kind) => {
+      const rec = justifications[r.id];
+      const text = rec?.text || '';
+      const ph = kind === 'o'
+        ? 'Почему факт превысил план: причина, разовое или системное, меры…'
+        : 'Почему план не исполнен: перенос сроков, экономия, отмена закупки…';
+      const saved = rec?.updatedAt ? 'Сохранено ' + new Date(rec.updatedAt).toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' }) : '';
+      return `<div class="j-item kind-${kind} ${text.trim() ? 'filled' : ''}" id="j-${r.id}">
+        <div class="j-top">
+          <span class="j-name">${esc(r.name)} <span class="cur-chip">${r.cur}</span>${r.inPlan ? '' : ' <span class="tag tag-noplan">нет в плане</span>'}</span>
+          <div class="j-meta">
+            <span>План <b>${money(r.plan, r.cur)}</b></span>
+            <span>Факт <b>${money(r.fact, r.cur)}</b></span>
+            <span>Отклонение <b class="${r.dev > 0 ? 'dev-pos' : 'dev-neg'}">${signed(r.dev, r.cur)}</b>${r.cur === 'USD' ? ` (${signed(r.devK, 'KZT')})` : ''}</span>
+            <span>Исполнение <b>${r.pct == null ? 'вне плана' : pctText(r.pct)}</b></span>
+          </div>
+        </div>
+        <label class="sr" for="t-${r.id}" style="position:absolute;left:-9999px">Обоснование: ${esc(r.name)}, ${r.cur}</label>
+        <textarea id="t-${r.id}" data-jid="${r.id}" data-name="${esc(r.name)}" data-cur="${r.cur}" data-kind="${kind}" placeholder="${ph}">${esc(text)}</textarea>
+        <div class="j-status" id="s-${r.id}">${saved}</div>
+      </div>`;
+    };
+
+    let html = '';
+    if (overs.length) html += `<div class="j-group"><h3><span class="dot" style="background:var(--over)"></span>Превышение бюджета · ${overs.length}</h3>
+      <div class="j-list">${overs.map((r) => item(r, 'o')).join('')}</div></div>`;
+    if (unders.length) html += `<div class="j-group"><h3><span class="dot" style="background:var(--under)"></span>Неисполнение бюджета · ${unders.length}</h3>
+      <div class="j-list">${unders.map((r) => item(r, 'u')).join('')}</div></div>`;
+    el.innerHTML = html;
+  }
+
+  const timers = {};
+  function saveJust(ta) {
+    const id = ta.dataset.jid;
+    clearTimeout(timers[id]);
+    const status = document.getElementById('s-' + id);
+    const text = ta.value;
+    const prev = justifications[id];
+    if ((prev?.text || '') === text) return;
+    const rec = { text, name: ta.dataset.name, cur: ta.dataset.cur, kind: ta.dataset.kind, updatedAt: new Date().toISOString() };
+    const next = { ...justifications, [id]: rec };
+    try {
+      store.set(JUST_KEY, next);
+      justifications = next;
+      if (status) {
+        status.className = 'j-status ok';
+        status.textContent = 'Сохранено в ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+      ta.closest('.j-item').classList.toggle('filled', !!text.trim());
+      refreshJustViews();
+    } catch (e) {
+      justifications = next; // keep in memory for this session
+      ta.closest('.j-item').classList.toggle('filled', !!text.trim());
+      refreshJustViews();
+      if (status) { status.className = 'j-status err'; status.textContent = 'Ошибка сохранения: хранилище браузера недоступно, текст сохранится только до закрытия страницы.'; }
+    }
+  }
+
+  // ---------- Render: detail ----------
+  function renderTabs(kzt, usd, all) {
+    const counts = { kzt: kzt.filter((r) => r.over).length, usd: usd.filter((r) => r.over).length, all: all.filter((r) => r.over).length };
+    document.getElementById('tabs').innerHTML = TABS.map((t) =>
+      `<button class="tab" role="tab" type="button" data-tab="${t.id}" aria-selected="${state.tab === t.id}">${t.label}
+        <span class="count ${counts[t.id] ? '' : 'zero'}" title="Статей с превышением">${counts[t.id]}</span></button>`).join('');
+  }
+
+  function renderDetail(kzt, usd, all) {
+    const el = document.getElementById('detailBody');
+    const src = state.tab === 'kzt' ? kzt : state.tab === 'usd' ? usd : all;
+    if (!src.length) {
+      el.innerHTML = `<div class="empty">${state.tab === 'usd' ? 'Нет данных в долларах.' : state.tab === 'kzt' ? 'Нет данных в тенге.' : 'Нет данных.'}</div>`;
+      return;
+    }
+    let rows = state.onlyOver ? src.filter((r) => r.over) : src;
+    if (!rows.length) { el.innerHTML = '<div class="none-msg">Статей с превышением нет</div>'; return; }
+
+    const isAll = state.tab === 'all';
+    const cur = state.tab === 'usd' ? 'USD' : 'KZT';
+    const P = (r) => (isAll ? r.planK : r.plan), F = (r) => (isAll ? r.factK : r.fact), D = (r) => (isAll ? r.devK : r.dev);
+    const sp = rows.reduce((a, r) => a + P(r), 0), sf = rows.reduce((a, r) => a + F(r), 0), sd = sf - sp;
+    const spct = sp ? (sf / sp) * 100 : null;
+
+    const head = `<tr><th>Статья</th>${isAll ? '<th>Валюта</th>' : ''}
+      <th class="num">План${isAll ? ', ₸' : ''}</th><th class="num">Факт${isAll ? ', ₸' : ''}</th><th class="num">Отклонение${isAll ? ', ₸' : ''}</th>
+      ${state.tab === 'usd' ? '<th class="num">Отклонение, ₸</th>' : ''}<th>Исполнение</th><th>Обоснование</th></tr>`;
+    const body = rows.map((r) => `<tr class="${r.over ? 'is-over' : ''}">${nameCell(r)}
+      ${isAll ? `<td class="cur-cell">${r.cur}</td>` : ''}
+      <td class="num">${money(P(r), cur)}</td><td class="num">${money(F(r), cur)}</td>${devCell(D(r), cur)}
+      ${state.tab === 'usd' ? devCell(r.devK, 'KZT') : ''}
+      <td>${execBar(r.pct, r.dev)}</td><td class="j-cell">${justCell(r)}</td></tr>`).join('');
+    const foot = `<tr><td${isAll ? ' colspan="2"' : ''}>Итого${state.onlyOver ? ' по превышениям' : ''} · ${rows.length}</td>
+      <td class="num">${money(sp, cur)}</td><td class="num">${money(sf, cur)}</td>${devCell(sd, cur)}
+      ${state.tab === 'usd' ? devCell(sd * state.rate, 'KZT') : ''}
+      <td>${execBar(spct, sd)}</td><td></td></tr>`;
+    el.innerHTML = `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>`;
+  }
+
+  // ---------- Orchestration ----------
+  let cache = { kzt: [], usd: [], all: [] };
+
+  function compute() {
+    const kzt = buildRows('KZT'), usd = buildRows('USD');
+    cache = { kzt, usd, all: [...kzt, ...usd] };
+  }
+
+  function renderAll() {
+    compute();
+    const { kzt, usd, all } = cache;
+    renderUploads();
+    renderKpis(all);
+    renderOver(all);
+    renderJust(all);
+    renderTabs(kzt, usd, all);
+    renderDetail(kzt, usd, all);
+  }
+
+  // After a justification is typed: refresh only the views that show it (keeps textarea focus)
+  function refreshJustViews() {
+    const { kzt, usd, all } = cache;
+    renderOver(all);
+    renderDetail(kzt, usd, all);
+    renderJustProgress(all);
+  }
+
+  // ---------- Events ----------
+  const rateEl = document.getElementById('rate');
+  const thrEl = document.getElementById('threshold');
+  const onlyOverEl = document.getElementById('onlyOver');
+  rateEl.value = state.rate;
+  thrEl.value = state.threshold;
+  onlyOverEl.checked = !!state.onlyOver;
+
+  rateEl.addEventListener('input', () => {
+    const v = parseNum(rateEl.value);
+    if (isNaN(v) || v < 0) return;
+    state.rate = v; saveState(); renderAll();
+  });
+  thrEl.addEventListener('input', () => {
+    const v = parseNum(thrEl.value);
+    if (isNaN(v) || v < 0 || v > 100) return;
+    state.threshold = v; saveState(); renderAll();
+  });
+  onlyOverEl.addEventListener('change', () => {
+    state.onlyOver = onlyOverEl.checked; saveState();
+    renderDetail(cache.kzt, cache.usd, cache.all);
+  });
+
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (!b) return;
+    state.tab = b.dataset.tab; saveState();
+    renderTabs(cache.kzt, cache.usd, cache.all);
+    renderDetail(cache.kzt, cache.usd, cache.all);
+    document.querySelector(`[data-tab="${state.tab}"]`)?.focus();
+  });
+  document.getElementById('tabs').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const i = TABS.findIndex((t) => t.id === state.tab);
+    const n = (i + (e.key === 'ArrowRight' ? 1 : -1) + TABS.length) % TABS.length;
+    document.querySelector(`[data-tab="${TABS[n].id}"]`).click();
+  });
+
+  const uploads = document.getElementById('uploads');
+  uploads.addEventListener('change', (e) => {
+    const inp = e.target.closest('input[type=file]');
+    if (inp) handleFile(inp.closest('[data-slot]').dataset.slot, inp.files[0]);
+  });
+  uploads.addEventListener('click', (e) => {
+    const rm = e.target.closest('[data-remove]');
+    if (rm) { delete state.files[rm.dataset.remove]; delete slotErrors[rm.dataset.remove]; saveState(); renderAll(); return; }
+    const drop = e.target.closest('.drop');
+    if (drop && !e.target.closest('label, button, input, a')) drop.querySelector('input[type=file]').click();
+  });
+  ['dragenter', 'dragover'].forEach((t) => uploads.addEventListener(t, (e) => {
+    const d = e.target.closest('.drop'); if (!d) return;
+    e.preventDefault(); d.classList.add('drag');
+  }));
+  ['dragleave', 'drop'].forEach((t) => uploads.addEventListener(t, (e) => {
+    const d = e.target.closest('.drop'); if (!d) return;
+    if (t === 'dragleave' && d.contains(e.relatedTarget)) return;
+    d.classList.remove('drag');
+    if (t === 'drop') { e.preventDefault(); handleFile(d.dataset.slot, e.dataTransfer.files[0]); }
+  }));
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+
+  document.getElementById('demoBtn').addEventListener('click', () => {
+    const names = { kzt_plan: 'Пример — план KZT.xlsx', kzt_fact: 'Пример — факт KZT.xlsx', usd_plan: 'Пример — план USD.xlsx', usd_fact: 'Пример — факт USD.xlsx' };
+    for (const s of SLOTS) {
+      state.files[s.id] = { fileName: names[s.id], items: DEMO[s.id].map(([name, amount]) => ({ name, amount })) };
+      delete slotErrors[s.id];
+    }
+    saveState(); renderAll();
+  });
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    state.files = {};
+    for (const k in slotErrors) delete slotErrors[k];
+    saveState(); renderAll();
+  });
+
+  const justBody = document.getElementById('justBody');
+  justBody.addEventListener('input', (e) => {
+    const ta = e.target.closest('textarea[data-jid]'); if (!ta) return;
+    const id = ta.dataset.jid;
+    const s = document.getElementById('s-' + id);
+    if (s) { s.className = 'j-status'; s.textContent = 'Сохраняется…'; }
+    clearTimeout(timers[id]);
+    timers[id] = setTimeout(() => saveJust(ta), 1000);
+  });
+  justBody.addEventListener('focusout', (e) => {
+    const ta = e.target.closest('textarea[data-jid]'); if (ta) saveJust(ta);
+  });
+
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-jump]'); if (!a) return;
+    e.preventDefault();
+    const box = document.getElementById('j-' + a.dataset.jump);
+    if (!box) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    box.classList.add('flash');
+    setTimeout(() => box.classList.remove('flash'), 1600);
+    box.querySelector('textarea')?.focus({ preventScroll: true });
+  });
+
+  // Theme
+  if (state.theme) document.documentElement.dataset.theme = state.theme;
+  document.getElementById('themeBtn').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    state.theme = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = state.theme;
+    saveState();
+  });
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
